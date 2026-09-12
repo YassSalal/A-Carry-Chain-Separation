@@ -80,24 +80,20 @@ module tb_ccsa;
     endfunction
 
     //-- a_step_value_preserve (immediate checks at every phase boundary) ----
-    always @(posedge clk) begin
-        if (!rst) begin
-            if (dut.ph == 3) begin   // Uq,Lq,Mq hold (U2,L2,M): end of Step 2
-                if (semval_s2(dut.Uq, dut.Lq, dut.Mq) !==
-                        (2*W+2)'(A_r) + (2*W+2)'(B_r))
-                    $error("a_step_value_preserve FAILED at end of Step 2");
-            end
-            if (dut.ph == 4) begin   // Uq,Lq hold (U3,L3): end of Step 3
-                if (semval_s3(dut.Uq, dut.Lq) !==
-                        (2*W+2)'(A_r) + (2*W+2)'(B_r))
-                    $error("a_step_value_preserve FAILED at end of Step 3");
-            end
-            if (dut.ph == 5) begin   // end of Step 4: canonical form
-                if (dut.Lq !== '0)
-                    $error("a_final_canonical FAILED: L4 not zero");
-            end
-        end
-    end
+    always  @(posedge CLK) disable iff (!RST_N)
+    (1, expected = A + B)
+    |=>
+    (step == 1) |-> (V1(U, L)     == expected)
+    and
+    (step == 2) |-> (V2(U, L, M)  == expected)   // corrected
+    and
+    (step == 3) |-> (V34(U, L)    == expected)
+    and
+    (step == 4) |-> (V34(U, L)    == expected);
+endproperty
+
+a_step_value_preserve : assert property (p_step_value_preserve)
+    else $error("Stage-relative value invariant violated at step %0d", step);
 
     //-- Concurrent SVA checkers ---------------------------------------------
     a_boundary_exclusive: assert property (@(posedge clk) disable iff (rst)
