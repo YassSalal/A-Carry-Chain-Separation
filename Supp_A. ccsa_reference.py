@@ -43,12 +43,26 @@ def semantic_value(U: list[int], L: list[int]) -> int:
            sum(L[l] << (l + 1) for l in range(len(L)))
 
 
-def semantic_value_step2(U, L, M) -> int:
-    """Theorem 7.2 (state after Step 2, mixed weights):
-    upper-grid bits and M-flagged (rewritten carry-free) lower bits carry
-    weight 2^l; unflagged lower bits are original carries of weight 2^(l+1)."""
-    return sum(U[l] << l for l in range(len(U))) + \
-           sum((L[l] << (l if M[l] else l + 1)) for l in range(len(L)))
+def semantic_value_step2(U, L, M, W):
+    """
+    Corrected Step-2 semantic value for the CCSA (Variant B).
+
+    V^(2)(U, L, M) =
+          sum_{ell=0}^{W-1} U[ell] * 2^ell
+        + sum_{ell=0}^{W-1} L[ell] * M[ell] * 2^ell
+        + sum_{ell=0}^{W-1} L[ell] * (1 - M[ell]) * 2^(ell+1)
+
+    The third sum accounts for original carry bits that were not
+    rewritten in Step 2 (M[ell] = 0). The spurious term
+    U[ell] * M[ell] * 2^(ell+1) that appeared in earlier drafts is
+    identically zero because U_2[ell] * M[ell] = 0 by construction.
+    """
+    s = 0
+    for ell in range(W):
+        s += U[ell] * (1 << ell)                        # untouched upper-grid bit
+        s += L[ell] * M[ell] * (1 << ell)               # rewritten carry-free bit
+        s += L[ell] * (1 - M[ell]) * (1 << (ell + 1))   # original carry bit
+    return s
 
 
 def semantic_value_step3(U, L) -> int:
