@@ -72,6 +72,30 @@ def semantic_value_step3(U, L) -> int:
     return sum((U[l] + L[l]) << l for l in range(len(U)))
 
 
+REGRESSION_VECTORS = [
+    # (A, B, W, note)
+    (6,  3,  4, "carry-free chain at 0 + original carry at 1; old V2 gives 5, corrected gives 9"),
+    (7,  1,  4, "maximal carry chain from LSB upward"),
+    (1,  7,  4, "same as above, operands swapped"),
+    (0,  0,  4, "degenerate case; all R=0, B2=0"),
+    (15, 1,  4, "carry chain crossing the full 4-bit datapath"),
+    (0b0110, 0b0011, 4, "worked example of Section 5.1"),
+]
+
+def run_regression_vectors():
+    for A, B, W, note in REGRESSION_VECTORS:
+        U1, L1 = step1(A, B, W)
+        assert semantic_value_step1(U1, L1, W) == A + B
+        U2, L2, M = step2(U1, L1, W)
+        assert semantic_value_step2(U2, L2, M, W) == A + B, note
+        U3, L3 = step3(U2, L2, M, W)
+        assert semantic_value_step34(U3, L3, W) == A + B
+        U4, L4 = step4(U3, L3, W)
+        assert L4 == [0] * W
+        assert semantic_value_step34(U4, L4, W) == A + B
+        assert to_int(U4) == A + B
+    print(f"All {len(REGRESSION_VECTORS)} regression vectors passed.")
+
 # --------------------------------------------------------------------------
 # CCSA Variant-B pipeline (Sections 3-6 of the paper)
 # --------------------------------------------------------------------------
