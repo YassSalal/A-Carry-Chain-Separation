@@ -1,46 +1,27 @@
-# Supp. F -- Raw FPGA Synthesis Reports
+markdown
+# CCSA Supplementary Material — Repository Layout
 
-This directory holds the **unmodified, tool-generated** post-route reports
-supporting Section 9 (Tables 4-6) and the custom-bus power model (Section 10.2.3).
+- `supp_A/python_reference_model.py` — Python 3.11 reference model
+- `supp_B/ccsa_rtl.v`               — synthesizable sequential RTL
+- `supp_B/ccsa_comb.v`              — combinational RTL
+- `supp_C/tb_ccsa.sv`               — self-checking SV testbench + SVA
+- `supp_D/synth_ccsa.tcl`           — Vivado 2023.2 synthesis flow
+- `supp_E/electrical_validation_report.md` — custom-bus delay model
+- `supp_E/reproduce_tables.py`      — reproduces Appendix B Tables 1.2 & 1.3
+- `supp_F/parse_reports.py`         — parses Vivado reports into CSV
+- `baselines/`                      — Manchester (ripple, static),
+                                      carry-skip, Kogge-Stone (pipelined,
+                                      combinational), CARRY4 (ripple,
+                                      pipelined)
 
-## Layout
+## Reproduction
 
-    Supp_F/raw/
-      ccsa_seq_W8/    ccsa_seq_W8_util.rpt, _timing.rpt, _power.rpt,
-                      _route_status.rpt, synth.log, ccsa_seq_W8.xdc
-      ccsa_seq_W16/   ... (same naming)
-      ...
-      ccsa_seq_W256/
-      kogge_stone_pipelined_W{8..256}/   (baseline, repository baselines/ RTL)
-      kogge_stone_comb_W{8..256}/
-      brent_kung_comb_W{8..256}/
-      results_summary.csv              (collated by parse_reports.py)
+1. `python3 supp_A/python_reference_model.py`
+2. `python3 supp_E/reproduce_tables.py`
+3. `vivado -mode batch -source supp_D/synth_ccsa.tcl`
+4. `python3 supp_F/parse_reports.py`
 
-## Regenerating
+## Table numbering note
 
-    vivado -mode batch -source ../Supp_D/run_synth_all.tcl
-
-Each run uses Vivado 2023.2, part xc7a100tcsg324-1, default synthesis /
-implementation strategies, retiming disabled, 1 ns clock over-constraint,
-20 % input/output delays, 0.10 pF output load (Section 9.1). Reports are
-committed **as generated**; only `results_summary.csv` is machine-derived
-(via `parse_reports.py`).
-
-## Contents of each report
-
-| File | Key fields used in the paper |
-|---|---|
-| `*_util.rpt` | LUTs, FFs, routed wirelength |
-| `*_timing.rpt` | WNS/TNS, post-route Fmax -> T_clk |
-| `*_power.rpt` | Dynamic/leakage/total power (vectorless, 12.5 % toggle) |
-| `*_route_status.rpt` | Fully routed confirmation (no congestion failures) |
-| `synth.log` | Tool version, strategy flags, command echo |
-
-## IMPORTANT limitation (repeated from Section 9.1)
-
-The Artix-7 fabric implements the CCSA global buses through general-purpose
-programmable interconnect, not dedicated metal tracks with
-designer-controlled repeaters. These reports therefore validate logical
-correctness, linear resource scaling, and latency *trends*; they do **not**
-validate the absolute width-insensitive delay bound of the custom-bus
-model (Supp. E).
+The manuscript’s evaluation tables are numbered **Table 10, Table 11, and
+Table 12**. Earlier references to “Tables 4–6” were incorrect.
