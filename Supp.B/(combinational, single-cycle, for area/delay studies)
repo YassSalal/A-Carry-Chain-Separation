@@ -1,1 +1,41 @@
+`timescale 1ns/1ps
+`default_nettype none
+module ccsa_comb #(parameter integer W = 8) (
+    input  wire [W-1:0] A,
+    input  wire [W-1:0] B,
+    output wire [W-1:0] S
+);
+    wire [W-1:0] U1 = A ^ B;
+    wire [W-1:0] L1 = A & B;
 
+    wire [W:0] U1e = {1'b0, U1};
+    wire [W:0] L1e = {1'b0, L1};
+
+    wire [W-1:0] R   = U1 & ~U1e[W-1:0] & ~L1e[W-1:0];
+    wire [W-1:0] Lam = ~U1 & U1e[W-1:0];
+
+    wire [W-1:0] B2;
+    genvar i;
+    generate
+        for (i = 0; i < W; i = i + 1) begin : g_b2
+            if (i == 0) assign B2[i] = R[i];
+            else        assign B2[i] = R[i] | (B2[i-1] & ~Lam[i]);
+        end
+    endgenerate
+
+    wire [W-1:0] E  = B2 & U1;
+    wire [W-1:0] U2 = U1 & ~E;
+    wire [W-1:0] L2 = L1 | E;
+    wire [W-1:0] M  = E;
+
+    wire [W:0] U2e = {1'b0, U2};
+    wire [W:0] L2e = {1'b0, L2};
+    wire [W:0] Me  = {1'b0, M};
+
+    wire [W-1:0] U3 = (~U2 & U2e[W-1:0])
+                    | (~Me[W-1:0] & L2e[W-1:0] & ~U2e[W-1:0] & ~U2);
+    wire [W-1:0] L3 = L2 & M;
+
+    assign S = U3 | L3;
+endmodule
+`default_nettype wire
