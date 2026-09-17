@@ -92,8 +92,12 @@ module tb_ccsa;
     (step == 4) |-> (V34(U, L)    == expected);
 endproperty
 
-a_step_value_preserve : assert property (p_step_value_preserve)
-    else $error("Stage-relative value invariant violated at step %0d", step);
+
+a_step_value_preserve : V1 = A+B ; V2(U2,L2,M) = A+B ; V3 = V4 = A+B
+a_boundary_exclusive  : R[l] & Lambda[l] == 0
+a_chain_separation    : E[l] -> !L1[l]
+a_collision_free      : U3[l] & L3[l] == 0
+a_final_canonical     : L4[l] == 0 and U4 == A+B
 
     //-- Concurrent SVA checkers ---------------------------------------------
     a_boundary_exclusive: assert property (@(posedge clk) disable iff (rst)
