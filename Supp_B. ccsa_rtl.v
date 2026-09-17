@@ -1,169 +1,172 @@
-//-----------------------------------------------------------------------------
-// ccsa_rtl.v -- Carry-Chain-Separation Adder (CCSA), Variant B
+//============================================================================
+// ccsA_variant_B — Carry-Chain-Separation Adder, Variant B
+// Supplementary Material B — synthesizable Verilog-2001
 //
-// Contents:
-//   ccsa_comb #(W) : single-cycle combinational implementation (Step 1-4
-//                    unrolled; useful for formal equivalence checking).
-//   ccsa_seq  #(W) : four-cycle sequential implementation with reused
-//                    register banks U, L, M (the FPGA-validated design).
-//
-// All logic uses gates with fan-in <= 3. Global Bus 1 / Bus 2 behaviour is
-// modelled by the boundary-controlled switching network of Section 8.4.
-// In the FPGA fabric the transmission gates are realised as LUT muxes; in
-// a custom ASIC they are CMOS pass gates (Section 1.2).
-//-----------------------------------------------------------------------------
-`timescale 1ns/1ps
-
-module ccsa_comb #(parameter W = 32) (
-    input  wire [W-1:0] A,
-    input  wire [W-1:0] B,
-    output wire [W:0]   S
+// Marker-aware implementation. The marker register M is load-bearing for
+// the stage-relative invariant V^(2)(U,L,M) and for the Step-3 carry-chain
+// collapse. It must not be optimized away, retimed, or replaced by a
+// combinational alias of E.
+//============================================================================
+module ccsA_variant_B #(
+    parameter W = 64
+) (
+    input  wire              clk,
+    input  wire              rst_n,
+    input  wire              start,
+    input  wire [W-1:0]      A,
+    input  wire [W-1:0]      B,
+    output reg  [W-1:0]      S,
+    output wire              done
 );
-    // -- Step 1: vertical half-addition (Section 8.4) -----------------------
-    wire [W-1:0] U1 = A ^ B;
-    wire [W-1:0] L1 = A & B;
 
-    // Extended grids: index i corresponds to bit position l = i-1, so
-    // i=0 is the virtual cell l=-1 and i=W+1 the virtual cell l=n+1,
-    // both hardwired to zero (Section 8.2).
-    wire [W+1:0] U1x = {1'b0, U1, 1'b0};
-    wire [W+1:0] L1x = {1'b0, L1, 1'b0};
+    // -----------------------------------------------------------------------
+    // B.3 Phase control
+    // -----------------------------------------------------------------------
+    reg [2:0] step;              // 0 = idle, 1..4 = phi1..phi4
+    wire phi1 = (step == 3'd1);
+    wire phi2 = (step == 3'd2);
+    wire phi3 = (step == 3'd3);
+    wire phi4 = (step == 3'd4);
+    assign done = (step == 3'd4);
 
-    // -- Step 2: boundary-controlled switching ------------------------------
-    wire [W-1:0] R, Lambda, B2, E, U2, L2, M;
-    genvar l;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            step <= 3'd0;
+        else if (step == 3'd0)
+            step <= start ? 3'd1 : 3'd0;
+        else if (step == 3'd4)
+            step <= 3'd0;         // return to idle after the result is latched
+        else
+            step <= step + 3'd1;
+    end
+
+    // -----------------------------------------------------------------------
+    // B.4 State registers
+    //
+    // U, L are written every phase. M is written only at phi2 and retained
+    // through phi3 and phi4 (no write in those phases). The preserve
+    // attributes are essential: removing M changes the semantics of Step 3.
+    // -----------------------------------------------------------------------
+    (* preserve = "true" *) reg [W-1:0] U;
+    (* preserve = "true" *) reg [W-1:0] L;
+    (* preserve = "true" *) reg [W-1:0] M;   // marker: written only at phi2
+
+    // -----------------------------------------------------------------------
+    // B.5 Step 1 — Vertical half-addition (phi1)
+    //
+    // U1[l] = A[l] ^ B[l],  L1[l] = A[l] & B[l]
+    // -----------------------------------------------------------------------
+    wire [W-1:0] U1_c = A ^ B;
+    wire [W-1:0] L1_c = A & B;
+
+    // -----------------------------------------------------------------------
+    // B.6 Step 2 — Boundary-controlled switching (phi2)
+    //
+    // R[l]    = U[l] & ~U[l-1] & ~L[l-1]
+    // Lam[l]  = ~U[l] & U[l-1]
+    // B2[l]   = R[l] | (B2[l-1] & ~Lam[l]),   B2[-1] = 0
+    // E[l]    = B2[l] & U[l]
+    // U2[l]   = U[l] & ~E[l]
+    // L2[l]   = L[l] | E[l]
+    // M[l]    = E[l]
+    //
+    // During phi2, the register bank U, L holds U1, L1.
+    // -----------------------------------------------------------------------
+    wire [W-1:0] R, Lam, B2, E;
+    wire [W-1:0] U2_c, L2_c;
+
+    genvar g;
     generate
-        for (l = 0; l < W; l = l + 1) begin : STEP2
-            assign R[l]     = U1x[l+1] & ~U1x[l] & ~L1x[l];   // right boundary
-            assign Lambda[l]= ~U1x[l+1] & U1x[l];             // left boundary
-            if (l == 0) begin
-                assign B2[l] = R[l];                          // B2[-1] = 0
-            end else begin
-                assign B2[l] = R[l] | (B2[l-1] & ~Lambda[l]); // Bus 2 recurrence
-            end
-            assign E[l]  = B2[l] & U1x[l+1];                  // rewrite-enable
-            assign U2[l] = U1x[l+1] & ~E[l];
-            assign L2[l] = L1x[l+1] | E[l];
-            assign M[l]  = E[l];
+        for (g = 0; g < W; g = g + 1) begin : g_step2
+            wire u1_l  = U[g];
+            wire u1_lm = (g == 0) ? 1'b0 : U[g-1];
+            wire l1_lm = (g == 0) ? 1'b0 : L[g-1];
+            wire b2_lm = (g == 0) ? 1'b0 : B2[g-1];
+
+            // Right-boundary detector
+            assign R[g]   = u1_l & ~u1_lm & ~l1_lm;
+
+            // Left-boundary detector
+            assign Lam[g] = ~u1_l & u1_lm;
+
+            // Bus 2 recurrence (LSB -> MSB)
+            assign B2[g]  = R[g] | (b2_lm & ~Lam[g]);
         end
     endgenerate
 
-    wire [W+1:0] U2x = {1'b0, U2, 1'b0};
-    wire [W+1:0] L2x = {1'b0, L2, 1'b0};
-    wire [W+1:0] Mx  = {1'b0, M,  1'b0};
+    assign E    = B2 & U;
+    assign U2_c = U & ~E;
+    assign L2_c = L | E;
 
-    // -- Step 3: carry-chain inversion (Variant B, Section 8.4) -------------
-    wire [W:0]   U3;
-    wire [W-1:0] L3;
+    // -----------------------------------------------------------------------
+    // B.7 Step 3 — Carry-chain collapse, Variant B (phi3)
+    //
+    // U3[l] = (~U2[l] & U2[l-1])
+    //       | (~M[l-1] & L2[l-1] & ~U2[l-1] & ~U2[l])
+    // L3[l] = L2[l] & M[l]
+    //
+    // Factored form used in RTL:
+    //   U3[l] = ~U2[l] & ( U2[l-1] | (~M[l-1] & L2[l-1] & ~U2[l-1]) )
+    //
+    // During phi3, the register bank U, L holds U2, L2 and M holds the
+    // registered marker from phi2.
+    // -----------------------------------------------------------------------
+    wire [W-1:0] U3_c, L3_c;
     generate
-        for (l = 0; l <= W; l = l + 1) begin : STEP3U
-            assign U3[l] = (~U2x[l+1] & U2x[l]) |
-                           (~Mx[l] & L2x[l] & ~U2x[l] & ~U2x[l+1]);
-        end
-        for (l = 0; l < W; l = l + 1) begin : STEP3L
-            assign L3[l] = L2x[l+1] & Mx[l+1];
+        for (g = 0; g < W; g = g + 1) begin : g_step3
+            wire u2_l  = U[g];
+            wire u2_lm = (g == 0) ? 1'b0 : U[g-1];
+            wire l2_lm = (g == 0) ? 1'b0 : L[g-1];
+            wire m_lm  = (g == 0) ? 1'b0 : M[g-1];
+
+            assign U3_c[g] = ~u2_l & ( u2_lm | (~m_lm & l2_lm & ~u2_lm) );
+            assign L3_c[g] = L[g] & M[g];
         end
     endgenerate
 
-    // -- Step 4: collision-free merge (Proposition 1: OR == ADD) ------------
-    generate
-        for (l = 0; l < W; l = l + 1) begin : STEP4
-            assign S[l] = U3[l] | L3[l];
-        end
-    endgenerate
-    assign S[W] = U3[W];   // carry-out / left-boundary bit at position n+1
-endmodule
+    // -----------------------------------------------------------------------
+    // B.8 Step 4 — Collision-free merge (phi4)
+    //
+    // U4[l] = U3[l] | L3[l],  L4[l] = 0
+    //
+    // During phi4, U, L hold U3, L3.
+    // -----------------------------------------------------------------------
+    wire [W-1:0] U4_c = U | L;
+    // L4 is identically zero; no register is needed for it.
 
-
-//-----------------------------------------------------------------------------
-// Sequential CCSA: one algorithmic step per clock cycle (Section 8.2).
-// Phase enables are implicit in the FSM state (2-bit step counter).
-//-----------------------------------------------------------------------------
-module ccsa_seq #(parameter W = 32) (
-    input  wire         clk,
-    input  wire         rst,      // synchronous, active high
-    input  wire         start,    // pulse high for one cycle in IDLE
-    input  wire [W-1:0] A,
-    input  wire [W-1:0] B,
-    output reg          done,     // high for one cycle when S is valid
-    output reg  [W:0]   S
-);
-    localparam PH_IDLE = 3'd0, PH1 = 3'd1, PH2 = 3'd2,
-               PH3 = 3'd3, PH4 = 3'd4, PH_DONE = 3'd5;
-    reg [2:0]   ph;
-    reg [W:0]   Uq, Lq;      // register banks reused every cycle
-    reg [W-1:0] Mq;
-
-    // -- Step-2 combinational logic evaluated on the current (Uq, Lq) -------
-    wire [W+1:0] Uqx = {1'b0, Uq[W-1:0], 1'b0};
-    wire [W+1:0] Lqx = {1'b0, Lq[W-1:0], 1'b0};
-    wire [W-1:0] s2R, s2Lambda, s2B2, s2E, s2U2, s2L2;
-    genvar l;
-    generate
-        for (l = 0; l < W; l = l + 1) begin : S2
-            assign s2R[l]      = Uqx[l+1] & ~Uqx[l] & ~Lqx[l];
-            assign s2Lambda[l] = ~Uqx[l+1] & Uqx[l];
-            if (l == 0) begin
-                assign s2B2[l] = s2R[l];
-            end else begin
-                assign s2B2[l] = s2R[l] | (s2B2[l-1] & ~s2Lambda[l]);
-            end
-            assign s2E[l]  = s2B2[l] & Uqx[l+1];
-            assign s2U2[l] = Uqx[l+1] & ~s2E[l];
-            assign s2L2[l] = Lqx[l+1] | s2E[l];
-        end
-    endgenerate
-
-    // -- Step-3 combinational logic evaluated on the current (Uq, Lq, Mq) ---
-    wire [W+1:0] Mqx = {1'b0, Mq, 1'b0};
-    wire [W:0]   s3U3;
-    wire [W-1:0] s3L3;
-    generate
-        for (l = 0; l <= W; l = l + 1) begin : S3U
-            assign s3U3[l] = (~Uqx[l+1] & Uqx[l]) |
-                             (~Mqx[l] & Lqx[l] & ~Uqx[l] & ~Uqx[l+1]);
-        end
-        for (l = 0; l < W; l = l + 1) begin : S3L
-            assign s3L3[l] = Lqx[l+1] & Mqx[l+1];
-        end
-    endgenerate
-
-    // -- FSM -----------------------------------------------------------------
-    always @(posedge clk) begin
-        if (rst) begin
-            ph <= PH_IDLE; done <= 1'b0; S <= {(W+1){1'b0}};
-            Uq <= {(W+1){1'b0}}; Lq <= {(W+1){1'b0}}; Mq <= {W{1'b0}};
+    // -----------------------------------------------------------------------
+    // B.9 Register update
+    //
+    // U and L are loaded at every phase. M is loaded only at phi2 and
+    // retains its value through phi3 and phi4.
+    // -----------------------------------------------------------------------
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            U <= {W{1'b0}};
+            L <= {W{1'b0}};
+            M <= {W{1'b0}};
+            S <= {W{1'b0}};
         end else begin
-            case (ph)
-                PH_IDLE: if (start) begin          // Step 1
-                    Uq  <= {1'b0, A ^ B};
-                    Lq  <= {1'b0, A & B};
-                    Mq  <= {W{1'b0}};
-                    done <= 1'b0;
-                    ph  <= PH2;
-                end
-                PH2: begin                          // boundary switching
-                    Uq <= {1'b0, s2U2};
-                    Lq <= {1'b0, s2L2};
-                    Mq <= s2E;
-                    ph <= PH3;
-                end
-                PH3: begin                          // carry-chain inversion
-                    Uq <= s3U3;
-                    Lq <= {1'b0, s3L3};
-                    ph <= PH4;
-                end
-                PH4: begin                          // collision-free merge
-                    S    <= Uq | Lq;
-                    done <= 1'b1;
-                    ph   <= PH_DONE;
-                end
-                PH_DONE: begin
-                    done <= 1'b0;
-                    ph   <= PH_IDLE;
-                end
-                default: ph <= PH_IDLE;
-            endcase
+            if (phi1) begin
+                U <= U1_c;
+                L <= L1_c;
+            end
+            if (phi2) begin
+                U <= U2_c;
+                L <= L2_c;
+                M <= E;              // marker captured here; never derived later
+            end
+            if (phi3) begin
+                U <= U3_c;
+                L <= L3_c;
+                // M is deliberately NOT assigned here; it retains E from phi2.
+            end
+            if (phi4) begin
+                U <= U4_c;
+                L <= {W{1'b0}};
+                S <= U4_c;           // registered output
+            end
         end
     end
+
 endmodule
