@@ -22,6 +22,19 @@ Versioned supplementary material for the manuscript
 See `REPRODUCE.md` for the equation-to-code mapping required by the
 reviewer.
 
+## Reproducibility
+
+The exact artifacts backing the tables and figures in *Manuscript_18.09* are
+released at the Git tag **`v2.0-ccsa`**.
+
+Check out the tagged release:
+
+    git clone https://github.com/YassSalal/A-Carry-Chain-Separation
+    cd A-Carry-Chain-Separation
+    git checkout v2.0-ccsa
+
+Then follow `REPRODUCE.md`.
+
 ## Version
 
 This repository supersedes an earlier revision in which the reference
