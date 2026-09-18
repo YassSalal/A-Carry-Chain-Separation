@@ -1,3 +1,42 @@
+# Reproducing the CCSA Results
+
+**Tagged release:** `v2.0-ccsa`
+**Manuscript:** Manuscript.docx
+**Toolchain:** Vivado 2023.2, Artix-7 XC7A100T-1CSG324C, Python 3.8+
+
+All numbers in Tables 10–12 and Appendix B Table 1.3 were regenerated from
+this tag. Do not expect bit-identical results from other commits.
+
+## 0. Check out the tagged release
+
+    git checkout v2.0-ccsa
+
+## 1. Reference model
+    python3 supp/A_reference_model/ccsa_ref.py --width 8 --exhaustive
+    python3 supp/A_reference_model/ccsa_ref.py --width 256 --random 20000
+
+## 2. Testbench
+    iverilog -g2012 -o /tmp/tb.vvp \
+        supp/C_testbench/tb_ccsa.sv supp/B_rtl/ccsa_adder.sv
+    vvp /tmp/tb.vvp
+
+## 3. Electrical model (Tables 1.2, 1.3)
+    python3 supp/E_elecrical_report/E6_tables_1_2_1_3.py
+
+## 4. FPGA tables (Tables 10–12)
+    # regenerate raw reports
+    for arch in ccsa manchester_ripple manchester_static carry_skip \
+                ks_pipelined ks_comb carry4_ripple carry4_pipelined; do
+      for w in 8 16 32 64 128 256; do
+        vivado -mode batch -source supp/D_vivado_scripts/synth_all.tcl \
+               -tclargs $arch $w
+      done
+    done
+    # collate
+    python3 supp/F_fpga_reports/collate.py \
+            --raw supp/F_fpga_reports/raw \
+            --out supp/F_fpga_reports/tables
+
 # Equation-to-code mapping (manuscript Section 7.3.1)
 
 All line numbers refer to the files in this repository at tag
