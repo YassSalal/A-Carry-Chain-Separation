@@ -19,8 +19,8 @@ this tag. Do not expect bit-identical results from other commits.
 
 ## 1. Reference model (Section 6.7, Supp. A)
 
-    python3 Supp.A/ccsa_ref.py/A_reference_model --width 8   --exhaustive
-    python3 Supp.A/ccsa_ref.py/A_reference_model --width 256 --random 20000
+    python3 Supp.A/A_reference_model/ccsa_ref.py --width 8   --exhaustive
+    python3 Supp.A/A_reference_model/ccsa_ref.py --width 256 --random 20000
 
 Expected: "PASS" with zero mismatches against native integer addition.
 
