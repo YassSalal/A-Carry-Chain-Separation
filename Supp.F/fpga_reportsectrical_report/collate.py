@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-supp/F_fpga_reports/collate.py
+Supp.F/fpga_reports/collate.py
 
 Collate raw Vivado 2023.2 reports (Artix-7 XC7A100T-1CSG324C) into the
 CSVs backing Tables 10, 11 and 12 of the CCSA manuscript.
 
 Directory layout expected:
 
-    supp/F_fpga_reports/raw/
+    Supp.F/fpga_reports/raw/
         <arch>_w<W>_timing.rpt
         <arch>_w<W>_util.rpt
         <arch>_w<W>_power.rpt
