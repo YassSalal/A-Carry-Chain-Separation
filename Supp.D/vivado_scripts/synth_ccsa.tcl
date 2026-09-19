@@ -7,10 +7,10 @@ if {$W eq ""} { set W 64 }
 
 set part   xc7a100tcsg324-1
 set top    ccsa_adder
-set rptdir [file normalize "./supp/F_fpga_reports/raw"]
+set rptdir [file normalize "./Supp.F/fpga_reports/raw"]
 file mkdir $rptdir
 
-read_verilog -sv supp/B_rtl/ccsa_adder.sv
+read_verilog -sv Supp.B/rtl/ccsa_adder.sv
 synth_design -top $top -part $part -generic W=$W
 opt_design
 place_design
