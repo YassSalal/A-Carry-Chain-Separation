@@ -10,7 +10,7 @@ set top    ccsa_adder
 set rptdir [file normalize "./Supp.F/fpga_reports/raw"]
 file mkdir $rptdir
 
-read_verilog -sv Supp.B/rtl/ccsa_adder.sv
+read_verilog -sv Supp.B/B_rtl/ccsa_adder.sv
 synth_design -top $top -part $part -generic W=$W
 opt_design
 place_design
