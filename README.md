@@ -8,12 +8,12 @@ Versioned supplementary material for the manuscript
 | Tag      | Path                              | Role                                        |
 |----------|-----------------------------------|---------------------------------------------|
 | Supp.A  | Supp.A/reference_model/ccsa_ref.py | Python reference model of Algorithm 1      |
-| Supp.B  | supp.B/rtl/ccsa_adder.sv           | Sequential RTL (W+1-bit output)             |
-| Supp.B  | supp.B/rtl/ccsa_adder_flat.sv      | Combinational RTL (single-cycle)            |
-| Supp.C  | supp.C/testbench/tb_ccsa.sv        | Self-checking SystemVerilog testbench       |
-| Supp.D  | supp.D/vivado_scripts/             | Vivado synthesis & sweep Tcl scripts        |
-| Supp.E  | supp.E/electrical_report/          | Electrical model report + Python evaluation |
-| Supp.F  | supp.F/fpga_reports/               | Raw Vivado reports + collation script       |
+| Supp.B  | Supp.B/rtl/ccsa_adder.sv           | Sequential RTL (W+1-bit output)             |
+| Supp.B  | Supp.B/rtl/ccsa_adder_flat.sv      | Combinational RTL (single-cycle)            |
+| Supp.C  | Supp.C/testbench/tb_ccsa.sv        | Self-checking SystemVerilog testbench       |
+| Supp.D  | Supp.D/vivado_scripts/             | Vivado synthesis & sweep Tcl scripts        |
+| Supp.E  | Supp.E/electrical_report/          | Electrical model report + Python evaluation |
+| Supp.F  | Supp.F/fpga_reports/               | Raw Vivado reports + collation script       |
 
 ## Reproduce
 
