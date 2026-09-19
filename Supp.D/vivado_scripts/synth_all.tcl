@@ -4,14 +4,14 @@ set arch   [lindex $argv 0]
 set width  [lindex $argv 1]
 
 set rtl_map [dict create \
-    ccsa               "Supp.B/rtl/ccsa_adder.sv" \
-    manchester_ripple  "Supp.B/rtl/manchester_adder.sv" \
-    manchester_static  "Supp.B/rtl/manchester_adder.sv" \
-    carry_skip         "Supp.B/rtl/carry_skip_adder.sv" \
-    ks_pipelined       "Supp.B/rtl/kogge_stone_adder.sv" \
-    ks_comb            "Supp.B/rtl/kogge_stone_adder.sv" \
-    carry4_ripple      "Supp.B/rtl/carry4_adder.sv" \
-    carry4_pipelined   "Supp.B/rtl/carry4_adder.sv"]
+    ccsa               "Supp.B/B_rtl/ccsa_adder.sv" \
+    manchester_ripple  "Supp.B/B_rtl/manchester_adder.sv" \
+    manchester_static  "Supp.B/B_rtl/manchester_adder.sv" \
+    carry_skip         "Supp.B/B_rtl/carry_skip_adder.sv" \
+    ks_pipelined       "Supp.B/B_rtl/kogge_stone_adder.sv" \
+    ks_comb            "Supp.B/B_rtl/kogge_stone_adder.sv" \
+    carry4_ripple      "Supp.B/B_rtl/carry4_adder.sv" \
+    carry4_pipelined   "Supp.B/B_rtl/carry4_adder.sv"]
 
 set rtl [dict get $rtl_map $arch]
 
