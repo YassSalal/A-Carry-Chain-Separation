@@ -2,7 +2,7 @@
 # synth_manchester.tcl
 #
 # Synthesize, place, and route the Manchester baseline in two variants.
-# Writes timing/utilization/power reports into supp/F_fpga_reports/raw/
+# Writes timing/utilization/power reports into Supp.F/fpga_reports/raw/
 # with the "manchester_ripple_" and "manchester_static_" prefixes,
 # matching collate.py.
 #
@@ -15,10 +15,10 @@ if {$W eq ""} { set W 64 }
 
 set part   xc7a100tcsg324-1
 set top    manchester_adder
-set rptdir [file normalize "./supp/F_fpga_reports/raw"]
+set rptdir [file normalize "./Supp.F/fpga_reports/raw"]
 file mkdir $rptdir
 
-read_verilog -sv supp/B_rtl/manchester_adder.sv
+read_verilog -sv Supp.B/rtl/manchester_adder.sv
 
 # ---- Classical Manchester (pass-transistor model) --------------------
 synth_design -top $top -part $part -generic W=$W -generic MANCHESTER_STATIC=0
