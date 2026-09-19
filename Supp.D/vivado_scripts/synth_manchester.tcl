@@ -18,7 +18,7 @@ set top    manchester_adder
 set rptdir [file normalize "./Supp.F/fpga_reports/raw"]
 file mkdir $rptdir
 
-read_verilog -sv Supp.B/rtl/manchester_adder.sv
+read_verilog -sv Supp.B/B_rtl/manchester_adder.sv
 
 # ---- Classical Manchester (pass-transistor model) --------------------
 synth_design -top $top -part $part -generic W=$W -generic MANCHESTER_STATIC=0
