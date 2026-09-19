@@ -20,8 +20,8 @@ where <arch> is one of:
 and <W> in {8, 16, 32, 64, 128, 256}.
 
 Usage:
-    python3 collate.py --raw supp/F_fpga_reports/raw \
-                       --out supp/F_fpga_reports/tables
+    python3 collate.py --raw Supp.F/fpga_reports/raw \
+                       --out Supp.F/fpga_reports/tables
 
 Author: CCSA reproducibility package
 License: MIT
