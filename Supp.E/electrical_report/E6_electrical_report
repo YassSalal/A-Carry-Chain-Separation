@@ -1,5 +1,5 @@
 markdown
-# Supp.E/E6_Electrical validation report
+# Supp.E/electrical_report/E6_Electrical validation report
 
 Status: **model prediction only** — not FPGA-validated, not post-layout
 extracted. The values below are the ones used in Appendix B, Tables 1.2
