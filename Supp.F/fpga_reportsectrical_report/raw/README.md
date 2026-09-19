@@ -15,7 +15,7 @@ set W [lindex $argv 0]
 if {$W eq ""} { set W 64 }
 
 set part   xc7a100tcsg324-1
-set rptdir [file normalize "./Supp.F_fpga_reports/raw"]
+set rptdir [file normalize "./Supp.F/fpga_reports/raw"]
 file mkdir $rptdir
 
 # ---- Pipelined Kogge-Stone --------------------------------------------
