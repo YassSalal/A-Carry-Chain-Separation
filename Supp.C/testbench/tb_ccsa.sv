@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // tb_ccsa.sv
-// Self-checking testbench for the CCSA RTL (Supp.B/rtl/ccsa_adder.sv).
+// Self-checking testbench for the CCSA RTL (Supp.B/B_rtl/ccsa_adder.sv).
 // Reproduces the verification claims of Section 6.7:
 //   - exhaustive 8-bit campaign (65,536 operand pairs)
 //   - random vectors up to 256 bits
