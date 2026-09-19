@@ -11,11 +11,11 @@ N_RAND  ?= 20000
 all: ref rtl sim
 
 ref:
-	$(PY) Supp.A/reference_model/ccsa_ref.py
+	$(PY) Supp.A/A_reference_model/ccsa_ref.py
 
 rtl:
 	$(IVERILOG) -g2012 -o build/tb_ccsa.vvp \
-	    Supp.B/rtl/ccsa_adder.sv Supp.C/testbench/tb_ccsa.sv
+	    Supp.B/B_rtl/ccsa_adder.sv Supp.C/testbench/tb_ccsa.sv
 
 sim: rtl
 	$(VVP) build/tb_ccsa.vvp
