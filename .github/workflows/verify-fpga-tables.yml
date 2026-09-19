@@ -1,0 +1,18 @@
+name: verify-fpga-tables
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify collated CSVs
+        run: |
+          python Supp.F/fpga_reports/scripts/verify_tables.py \
+                 --collated Supp.F/fpga_reports/collated
+      - name: Verify manifest hashes
+        run: |
+          cd Supp.F/fpga_reports
+          sha256sum -c SHA256SUMS
