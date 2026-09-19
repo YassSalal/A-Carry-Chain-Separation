@@ -29,14 +29,14 @@ Expected: "PASS" with zero mismatches against native integer addition.
 ## 2. RTL testbench (Section 6.7, Supp.C)
 
     iverilog -g2012 -o /tmp/tb.vvp \
-        Supp.C/testbench/tb_ccsa.sv Supp.B/rtl/ccsa_adder.sv
+        Supp.C/testbench/tb_ccsa.sv Supp.B/B_rtl/ccsa_adder.sv
     vvp /tmp/tb.vvp
 
 Expected: `tb_ccsa: PASS`.
 
 If `iverilog` is not available, use Vivado xsim:
 
-    xvlog  Supp.B/rtl/ccsa_adder.sv Supp.C/testbench/tb_ccsa.sv
+    xvlog  Supp.B/B_rtl/ccsa_adder.sv Supp.C/testbench/tb_ccsa.sv
     xelab  -debug typical tb_ccsa -s tb_sim
     xsim   tb_sim -runall
 
