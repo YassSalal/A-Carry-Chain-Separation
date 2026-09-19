@@ -19,8 +19,8 @@ this tag. Do not expect bit-identical results from other commits.
 
 ## 1. Reference model (Section 6.7, Supp. A)
 
-    python3 Supp.A/reference_model/ccsa_ref.py --width 8   --exhaustive
-    python3 Supp.A/reference_model/ccsa_ref.py --width 256 --random 20000
+    python3 Supp.A/A_reference_model/ccsa_ref.py --width 8   --exhaustive
+    python3 Supp.A/A_reference_model/ccsa_ref.py --width 256 --random 20000
 
 Expected: "PASS" with zero mismatches against native integer addition.
 
@@ -108,7 +108,7 @@ Expected output:
 | `U3[l]` (carry-chain collapse)     | `ccsa_adder.sv`, `U3` assign                 |
 | `L3[l] = L2[l] & M[l]`             | `ccsa_adder.sv`, `L3` assign                 |
 | `U4[l] = U3[l] \| L3[l]`           | `ccsa_adder.sv`, `U4` assign                 |
-| `V^(1), V^(2), V^(3)`              | `Supp.A/reference_model/ccsa_ref.py`         |
+| `V^(1), V^(2), V^(3)`              | `Supp.A/A_reference_model/ccsa_ref.py`         |
 
 ---
 
