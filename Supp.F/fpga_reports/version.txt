@@ -1,0 +1,13 @@
+# FPGA Report Provenance
+Vivado version:    2023.2
+Board:             Xilinx Artix-7 XC7A100T-1CSG324C
+Speed grade:       -1
+Synthesis mode:    default Vivado strategies (no retiming)
+Clock constraint:  1.0 ns over-constraint (true Fmax extracted post-route)
+I/O delays:        20% of target period
+Output load:       0.10 pF
+Switching activity: 12.5% toggle, 0.5 static probability
+Power confidence:  Low (vectorless)
+Git tag:           v2.0-ccsa
+Reproduction OS:   (fill in: Ubuntu 22.04 / Windows 11 / RHEL 8)
+Last regenerated:  (fill in date)
