@@ -4,7 +4,7 @@
 # Synthesize, place, and route the Kogge-Stone baseline in two forms:
 #   ks_adder_pipelined : one prefix-tree level per clock cycle
 #   ks_adder_flat      : full prefix tree in one cycle
-# Writes reports into supp/F_fpga_reports/raw/ with the
+# Writes reports into Supp.F/fpga_reports/raw/ with the
 # "kogge_stone_pipelined_" and "kogge_stone_flat_" prefixes.
 #
 # Usage:
@@ -15,10 +15,10 @@ set W [lindex $argv 0]
 if {$W eq ""} { set W 64 }
 
 set part   xc7a100tcsg324-1
-set rptdir [file normalize "./supp/F_fpga_reports/raw"]
+set rptdir [file normalize "./Supp.F/fpga_reports/raw"]
 file mkdir $rptdir
 
-read_verilog -sv supp/B_rtl/kogge_stone_adder.sv
+read_verilog -sv Supp.B/rtl/kogge_stone_adder.sv
 
 # ---- Pipelined Kogge-Stone ------------------------------------------
 set top ks_adder_pipelined
