@@ -19,24 +19,24 @@ this tag. Do not expect bit-identical results from other commits.
 
 ## 1. Reference model (Section 6.7, Supp. A)
 
-    python3 supp/A_reference_model/ccsa_ref.py --width 8   --exhaustive
-    python3 supp/A_reference_model/ccsa_ref.py --width 256 --random 20000
+    python3 Supp.A/reference_model/ccsa_ref.py --width 8   --exhaustive
+    python3 Supp.A/reference_model/ccsa_ref.py --width 256 --random 20000
 
 Expected: "PASS" with zero mismatches against native integer addition.
 
 ---
 
-## 2. RTL testbench (Section 6.7, Supp. C)
+## 2. RTL testbench (Section 6.7, Supp.C)
 
     iverilog -g2012 -o /tmp/tb.vvp \
-        supp/C_testbench/tb_ccsa.sv supp/B_rtl/ccsa_adder.sv
+        Supp.C/testbench/tb_ccsa.sv Supp.B/rtl/ccsa_adder.sv
     vvp /tmp/tb.vvp
 
 Expected: `tb_ccsa: PASS`.
 
 If `iverilog` is not available, use Vivado xsim:
 
-    xvlog  supp/B_rtl/ccsa_adder.sv supp/C_testbench/tb_ccsa.sv
+    xvlog  Supp.B/rtl/ccsa_adder.sv Supp.C/testbench/tb_ccsa.sv
     xelab  -debug typical tb_ccsa -s tb_sim
     xsim   tb_sim -runall
 
@@ -44,7 +44,7 @@ If `iverilog` is not available, use Vivado xsim:
 
 ## 3. Electrical model (Appendix B, Tables 1.2 and 1.3)
 
-    python3 supp/E_electrical_report/E6_tables_1_2_1_3.py
+    python3 Supp.E/electrical_report/E6_tables_1_2_1_3.py
 
 Expected, for T_clk = 1.22 ns, k = 16, s = 8:
 
@@ -65,12 +65,12 @@ Expected, for T_clk = 1.22 ns, k = 16, s = 8:
                 ks_pipelined ks_comb carry4_ripple carry4_pipelined; do
       for w in 8 16 32 64 128 256; do
         vivado -mode batch \
-               -source supp/D_vivado_scripts/synth_all.tcl \
+               -source Supp.D/vivado_scripts/synth_all.tcl \
                -tclargs $arch $w
       done
     done
 
-Each invocation writes three files into `supp/F_fpga_reports/raw/`:
+Each invocation writes three files into `Supp.F/fpga_reports/raw/`:
 
     <arch>_w<W>_timing.rpt
     <arch>_w<W>_util.rpt
@@ -78,17 +78,17 @@ Each invocation writes three files into `supp/F_fpga_reports/raw/`:
 
 ### 4b. Collate them into the CSVs
 
-    python3 supp/F_fpga_reports/collate.py \
-            --raw supp/F_fpga_reports/raw \
-            --out supp/F_fpga_reports/tables
+    python3 Supp.F/fpga_reports/collate.py \
+            --raw Supp.F/fpga_reports/raw \
+            --out Supp.F/fpga_reports/tables
 
 Expected output:
 
     [bus model]  c_bus = 95.70 tau,  W_max = 640
     [tables]
-      wrote supp/F_fpga_reports/tables/table10.csv
-      wrote supp/F_fpga_reports/tables/table11.csv
-      wrote supp/F_fpga_reports/tables/table12.csv
+      wrote Supp.F/fpga_reports/tables/table10.csv
+      wrote Supp.F/fpga_reports/tables/table11.csv
+      wrote Supp.F/fpga_reports/tables/table12.csv
     [ok] all rows populated.
 
 ---
@@ -108,7 +108,7 @@ Expected output:
 | `U3[l]` (carry-chain collapse)     | `ccsa_adder.sv`, `U3` assign                 |
 | `L3[l] = L2[l] & M[l]`             | `ccsa_adder.sv`, `L3` assign                 |
 | `U4[l] = U3[l] \| L3[l]`           | `ccsa_adder.sv`, `U4` assign                 |
-| `V^(1), V^(2), V^(3)`              | `supp/A_reference_model/ccsa_ref.py`         |
+| `V^(1), V^(2), V^(3)`              | `Supp.A/reference_model/ccsa_ref.py`         |
 
 ---
 
