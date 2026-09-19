@@ -18,7 +18,7 @@ set part   xc7a100tcsg324-1
 set rptdir [file normalize "./Supp.F/fpga_reports/raw"]
 file mkdir $rptdir
 
-read_verilog -sv Supp.B/rtl/kogge_stone_adder.sv
+read_verilog -sv Supp.B/B_rtl/kogge_stone_adder.sv
 
 # ---- Pipelined Kogge-Stone ------------------------------------------
 set top ks_adder_pipelined
