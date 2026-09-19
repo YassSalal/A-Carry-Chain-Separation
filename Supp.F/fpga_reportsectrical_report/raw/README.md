@@ -4,7 +4,7 @@
 # Synthesize, place, and route the Kogge-Stone baseline in two forms:
 #   - K-S Pipelined    : one prefix-tree level per clock cycle
 #   - K-S Combinational: full prefix tree in one cycle
-# Writes reports into supp/F_fpga_reports/raw/ with the "kogge_stone_"
+# Writes reports into Supp.F/fpga_reports/raw/ with the "kogge_stone_"
 # prefix, matching collate.py.
 #
 # Usage:
