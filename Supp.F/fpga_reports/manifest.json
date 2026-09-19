@@ -1,0 +1,7 @@
+{
+  "_note": "Run scripts/make_manifest.py after populating raw/ to regenerate.",
+  "raw/CCSA/W008/timing_summary_routed.rpt": {"sha256": "TBD", "size": 0},
+  "raw/CCSA/W008/utilization_placed.rpt":    {"sha256": "TBD", "size": 0},
+  "raw/CCSA/W008/power_routed.rpt":          {"sha256": "TBD", "size": 0},
+  "collated/table10.csv":                    {"sha256": "TBD", "size": 0}
+}
