@@ -15,7 +15,7 @@ ref:
 
 rtl:
 	$(IVERILOG) -g2012 -o build/tb_ccsa.vvp \
-	    Supp.B/rtl/ccsa_adder.sv supp/C_testbench/tb_ccsa.sv
+	    Supp.B/rtl/ccsa_adder.sv Supp.C/testbench/tb_ccsa.sv
 
 sim: rtl
 	$(VVP) build/tb_ccsa.vvp
