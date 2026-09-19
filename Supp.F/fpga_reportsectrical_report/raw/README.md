@@ -20,7 +20,7 @@ file mkdir $rptdir
 
 # ---- Pipelined Kogge-Stone --------------------------------------------
 set top ks_adder_pipelined
-read_verilog -sv supp/B_rtl/kogge_stone_adder.sv
+read_verilog -sv Supp.B/rtl/kogge_stone_adder.sv
 
 synth_design -top $top -part $part -generic W=$W -generic PIPELINED=1
 opt_design
