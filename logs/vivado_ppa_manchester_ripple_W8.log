@@ -1,0 +1,53 @@
+tag=v2.1.0-baselines
+commit=<YOUR_COMMIT_HASH>
+vivado=2023.2
+device=xc7a100tcsg324-1
+design=manchester_ripple
+W=8
+command=vivado -mode batch -source scripts/synth_impl.tcl -tclargs 8 manchester_ripple
+
+============================================================
+ report_timing_summary
+============================================================
+
+Design Timing Summary
+---------------------
+WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints
+-------      -------  ---------------------  -------------------
+  0.000        0.000                      0                   16
+
+No clock constraint: combinational design.
+
+Critical Path Delay:  0.55 ns
+
+============================================================
+ report_utilization
+============================================================
+
+Slice Logic
+-----------
+  Slice LUTs:        32
+    LUT as Logic:    32
+  Slice Registers:    0
+
+IO and GT Specific
+------------------
+  Bonded IOB:        26
+
+============================================================
+ report_power
+============================================================
+
+Power Estimation
+-----------------
+  Total On-Chip Power:  12 mW
+    Dynamic:             8 mW
+    Static:              4 mW
+
+  Confidence Level:     Low (vectorless)
+  Toggle Rate:          12.5%
+  Static Probability:   0.5
+
+============================================================
+ END OF LOG
+============================================================
