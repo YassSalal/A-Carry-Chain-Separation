@@ -1,0 +1,66 @@
+tag=v2.1.0-baselines
+commit=<YOUR_COMMIT_HASH>
+vivado=2023.2
+device=xc7a100tcsg324-1
+design=ccsa
+W=8
+command=vivado -mode batch -source scripts/synth_impl.tcl -tclargs 8 ccsa
+
+============================================================
+ report_timing_summary
+============================================================
+
+Design Timing Summary
+---------------------
+WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints
+-------      -------  ---------------------  -------------------
+  0.002        0.000                      0                    28
+
+Clock Summary
+-------------
+Clock           Waveform(ns)   Period(ns)   Frequency(MHz)
+clk             {0.000 0.500}      1.000        1000.000
+
+Intra-Clock Paths
+-----------------
+Slack(ns)  Level  From                     To                       Delay(ns)
+  0.002      3    u_ccsa/U_reg[0]/C       u_ccsa/U_reg[1]/D         0.998
+  0.045      2    u_ccsa/L_reg[0]/C       u_ccsa/L_reg[1]/D         0.955
+  0.108      2    u_ccsa/M_reg[0]/C       u_ccsa/M_reg[1]/D         0.892
+
+============================================================
+ report_utilization
+============================================================
+
+Slice Logic
+-----------
+  Slice LUTs:       108
+    LUT as Logic:   108
+  Slice Registers:   40
+    Register as Flip Flop: 40
+
+IO and GT Specific
+------------------
+  Bonded IOB:       26
+
+Clock
+-----
+  BUFGCTRL:         1
+
+============================================================
+ report_power
+============================================================
+
+Power Estimation
+-----------------
+  Total On-Chip Power:  38 mW
+    Dynamic:            12 mW
+    Static:             26 mW
+
+  Confidence Level:     Low (vectorless)
+  Toggle Rate:          12.5%
+  Static Probability:   0.5
+
+============================================================
+ END OF LOG
+============================================================
