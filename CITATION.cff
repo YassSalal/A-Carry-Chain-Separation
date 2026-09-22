@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this artifact, please cite the following."
+title: "Carry-Chain-Separation Architecture (CCSA) — Reference and RTL Implementation"
+authors:
+  - family-names: "Salal"
+    given-names: "Yass"
+    email: "yasskhudheirsalal@gmail.com"
+version: "v2.1.0-baselines"
+doi: "10.5281/zenodo.XXXXXXX"
+date-released: "2026-09-22"
+license: "MIT"
+repository-code: "https://github.com/YassSalal/A-Carry-Chain-Separation"
