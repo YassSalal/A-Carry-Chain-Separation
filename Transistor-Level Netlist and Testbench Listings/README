@@ -1,0 +1,4 @@
+Provenance. 
+All listings below are reproduced verbatim from Supp.E/electrical_validation/. 
+They are intended to be run against the ASAP7 v1.7 predictive PDK model files. 
+No parameter has been hand-tuned. The switch widths and repeater sizes follow Section 7.4.2.
