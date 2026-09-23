@@ -1,0 +1,7 @@
+.SUBCKT CCSA_SEGMENT_K16 bus1 bus2_in bus2_out vdd vss
+XREP bus2_in n0 vdd vss CCSA_REPEATER
+XBS0 bus1 n0 n1 R0 R0bar L0bar L0 E0 vdd vss CCSA_BITSLICE
+XBS1 bus1 n1 n2 R1 R1bar L1bar L1 E1 vdd vss CCSA_BITSLICE
+... (slices 2-14; full listing in Appendix C)
+XBS15 bus1 n15 bus2_out R15 R15bar L15bar L15 E15 vdd vss CCSA_BITSLICE
+.ENDS CCSA_SEGMENT_K16
