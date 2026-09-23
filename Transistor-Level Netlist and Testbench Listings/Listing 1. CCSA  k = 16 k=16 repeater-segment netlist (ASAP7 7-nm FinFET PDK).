@@ -1,0 +1,106 @@
+* ==============================================================
+* CCSA Transistor-Level Netlist
+* One k=16 Repeater Segment (16 bit slices + 1 repeater)
+* ASAP7 7nm FinFET Predictive PDK
+* VDD = 0.70 V, TT/25C
+* ==============================================================
+
+*--------------------------------------------------------------
+* Vertical Switch (VSW)
+* Complementary CMOS transmission gate.
+* Ports: bus1 bus2 R Rbar vdd vss
+*--------------------------------------------------------------
+.SUBCKT CCSA_VSW bus1 bus2 R Rbar vdd vss
+MN1 bus2 R bus1 vss NMOS W=1.0u L=0.016u NFIN=4
+MP1 bus2 Rbar bus1 vdd PMOS W=1.0u L=0.016u NFIN=4
+.ENDS CCSA_VSW
+
+*--------------------------------------------------------------
+* Horizontal Switch (HSW)
+* Complementary CMOS transmission gate.
+* Ports: bus2_up bus2_dn Lambdabar Lambda vdd vss
+* Conducts when Lambdabar=1 (Lambda=0).
+* Body terminals tied to local supply rails (Rule R2).
+*--------------------------------------------------------------
+.SUBCKT CCSA_HSW bus2_up bus2_dn Lambdabar Lambda vdd vss
+MN2 bus2_dn Lambdabar bus2_up vss NMOS W=1.0u L=0.016u NFIN=4
+MP2 bus2_dn Lambda bus2_up vdd PMOS W=1.0u L=0.016u NFIN=4
+.ENDS CCSA_HSW
+
+*--------------------------------------------------------------
+* Level-Restoring Receiver
+* Minimum-size inverter, trip point at VDD/2.
+* Ports: bus2 E vdd vss
+*--------------------------------------------------------------
+.SUBCKT CCSA_RECEIVER bus2 E vdd vss
+MN3 E bus2 vss vss NMOS W=0.10u L=0.016u NFIN=2
+MP3 E bus2 vdd vdd PMOS W=0.20u L=0.016u NFIN=2
+.ENDS CCSA_RECEIVER
+
+*--------------------------------------------------------------
+* Distributed Pull-Down
+* Weak NMOS, Rpd >= 10 MOhm.
+* Ports: bus2 vdd vss
+*--------------------------------------------------------------
+.SUBCKT CCSA_PULLDOWN bus2 vdd vss
+MN4 bus2 vdd vss vss NMOS W=0.05u L=1.0u NFIN=1
+.ENDS CCSA_PULLDOWN
+
+*--------------------------------------------------------------
+* Weak Keeper
+* Weak feedback inverter, W/L < 1/10 minimum.
+* Ports: bus2 vdd vss
+*--------------------------------------------------------------
+.SUBCKT CCSA_KEEPER bus2 vdd vss
+MN5 kout bus2 vss vss NMOS W=0.02u L=0.016u NFIN=1
+MP5 kout bus2 vdd vdd PMOS W=0.04u L=0.016u NFIN=1
+Rk kout bus2 1G
+.ENDS CCSA_KEEPER
+
+*--------------------------------------------------------------
+* Repeater (s = 8)
+* Two cascaded inverters, output-drive 8x minimum.
+* Ports: in out vdd vss
+*--------------------------------------------------------------
+.SUBCKT CCSA_REPEATER in out vdd vss
+MN6 n1 in vss vss NMOS W=0.20u L=0.016u NFIN=4
+MP6 n1 in vdd vdd PMOS W=0.40u L=0.016u NFIN=4
+MN7 out n1 vss vss NMOS W=0.80u L=0.016u NFIN=8
+MP7 out n1 vdd vdd PMOS W=1.60u L=0.016u NFIN=8
+.ENDS CCSA_REPEATER
+
+*--------------------------------------------------------------
+* Bit Slice
+* Ports: bus1 bus2_up bus2_dn R Rbar Lambdabar Lambda E vdd vss
+*--------------------------------------------------------------
+.SUBCKT CCSA_BITSLICE bus1 bus2_up bus2_dn R Rbar Lambdabar Lambda E vdd vss
+XVSW bus1 bus2_dn R Rbar vdd vss CCSA_VSW
+XHSW bus2_up bus2_dn Lambdabar Lambda vdd vss CCSA_HSW
+XRCV bus2_dn E vdd vss CCSA_RECEIVER
+XPD bus2_dn vdd vss CCSA_PULLDOWN
+XKP bus2_dn vdd vss CCSA_KEEPER
+.ENDS CCSA_BITSLICE
+
+*--------------------------------------------------------------
+* k=16 Repeater Segment
+* Ports: bus1 bus2_in bus2_out vdd vss
+*--------------------------------------------------------------
+.SUBCKT CCSA_SEGMENT_K16 bus1 bus2_in bus2_out vdd vss
+XREP bus2_in n0 vdd vss CCSA_REPEATER
+XBS0 bus1 n0 n1 R0 R0bar L0bar L0 E0 vdd vss CCSA_BITSLICE
+XBS1 bus1 n1 n2 R1 R1bar L1bar L1 E1 vdd vss CCSA_BITSLICE
+XBS2 bus1 n2 n3 R2 R2bar L2bar L2 E2 vdd vss CCSA_BITSLICE
+XBS3 bus1 n3 n4 R3 R3bar L3bar L3 E3 vdd vss CCSA_BITSLICE
+XBS4 bus1 n4 n5 R4 R4bar L4bar L4 E4 vdd vss CCSA_BITSLICE
+XBS5 bus1 n5 n6 R5 R5bar L5bar L5 E5 vdd vss CCSA_BITSLICE
+XBS6 bus1 n6 n7 R6 R6bar L6bar L6 E6 vdd vss CCSA_BITSLICE
+XBS7 bus1 n7 n8 R7 R7bar L7bar L7 E7 vdd vss CCSA_BITSLICE
+XBS8 bus1 n8 n9 R8 R8bar L8bar L8 E8 vdd vss CCSA_BITSLICE
+XBS9 bus1 n9 n10 R9 R9bar L9bar L9 E9 vdd vss CCSA_BITSLICE
+XBS10 bus1 n10 n11 R10 R10bar L10bar L10 E10 vdd vss CCSA_BITSLICE
+XBS11 bus1 n11 n12 R11 R11bar L11bar L11 E11 vdd vss CCSA_BITSLICE
+XBS12 bus1 n12 n13 R12 R12bar L12bar L12 E12 vdd vss CCSA_BITSLICE
+XBS13 bus1 n13 n14 R13 R13bar L13bar L13 E13 vdd vss CCSA_BITSLICE
+XBS14 bus1 n14 n15 R14 R14bar L14bar L14 E14 vdd vss CCSA_BITSLICE
+XBS15 bus1 n15 bus2_out R15 R15bar L15bar L15 E15 vdd vss CCSA_BITSLICE
+.ENDS CCSA_SEGMENT_K16
