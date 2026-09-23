@@ -1,0 +1,43 @@
+* ==============================================================
+* PVT Corner Sweep -- five corners
+* Run once per corner by uncommenting the appropriate corner block
+* ==============================================================
+.INCLUDE "asap7_models.sp"
+.INCLUDE "ccsa_segment_k16.sp"
+
+* Corner 1: TT, 25C, 0.70V
+.TEMP 25
+VDD vdd 0 0.70
+.MODEL NMOS NMOS_VTL_TT
+.MODEL PMOS PMOS_VTL_TT
+
+* Corner 2: FF, -40C, 0.77V
+*.TEMP -40
+*VDD vdd 0 0.77
+*.MODEL NMOS NMOS_VTL_FF
+*.MODEL PMOS PMOS_VTL_FF
+
+* Corner 3: SS, 125C, 0.63V
+*.TEMP 125
+*VDD vdd 0 0.63
+*.MODEL NMOS NMOS_VTL_SS
+*.MODEL PMOS PMOS_VTL_SS
+
+* Corner 4: SF, 25C, 0.70V
+*.TEMP 25
+*VDD vdd 0 0.70
+*.MODEL NMOS NMOS_VTL_SS
+*.MODEL PMOS PMOS_VTL_FF
+
+* Corner 5: FS, 25C, 0.70V
+*.TEMP 25
+*VDD vdd 0 0.70
+*.MODEL NMOS NMOS_VTL_FF
+*.MODEL PMOS PMOS_VTL_SS
+
+.DC VDD 0.70 0.70 1
+.PRINT DC V(bus2_out) V(n8) I(VDD)
+
+.TRAN 1p 200n UIC
+.PRINT TRAN V(bus2_out) V(n0) V(n8)
+.END
