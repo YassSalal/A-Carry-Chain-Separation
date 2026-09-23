@@ -1,0 +1,86 @@
+* ==============================================================
+* DC Analysis Testbench
+* Selected, unselected, and mixed configurations
+* ==============================================================
+.INCLUDE "asap7_models.sp"
+.INCLUDE "ccsa_segment_k16.sp"
+
+VDD vdd 0 0.70
+VSS vss 0 0
+Vbus1 bus1 0 0.70
+
+* --- Selected configuration: R0 = 1; all other R = 0; Lambda = 0 ---
+VR0 R0 0 0.70
+VR0bar R0bar 0 0.00
+VR1 R1 0 0.00
+VR1bar R1bar 0 0.70
+VR2 R2 0 0.00
+VR2bar R2bar 0 0.70
+VR3 R3 0 0.00
+VR3bar R3bar 0 0.70
+VR4 R4 0 0.00
+VR4bar R4bar 0 0.70
+VR5 R5 0 0.00
+VR5bar R5bar 0 0.70
+VR6 R6 0 0.00
+VR6bar R6bar 0 0.70
+VR7 R7 0 0.00
+VR7bar R7bar 0 0.70
+VR8 R8 0 0.00
+VR8bar R8bar 0 0.70
+VR9 R9 0 0.00
+VR9bar R9bar 0 0.70
+VR10 R10 0 0.00
+VR10bar R10bar 0 0.70
+VR11 R11 0 0.00
+VR11bar R11bar 0 0.70
+VR12 R12 0 0.00
+VR12bar R12bar 0 0.70
+VR13 R13 0 0.00
+VR13bar R13bar 0 0.70
+VR14 R14 0 0.00
+VR14bar R14bar 0 0.70
+VR15 R15 0 0.00
+VR15bar R15bar 0 0.70
+
+VL0 Lambda0 0 0.00
+VL0bar Lambda0bar 0 0.70
+VL1 Lambda1 0 0.00
+VL1bar Lambda1bar 0 0.70
+VL2 Lambda2 0 0.00
+VL2bar Lambda2bar 0 0.70
+VL3 Lambda3 0 0.00
+VL3bar Lambda3bar 0 0.70
+VL4 Lambda4 0 0.00
+VL4bar Lambda4bar 0 0.70
+VL5 Lambda5 0 0.00
+VL5bar Lambda5bar 0 0.70
+VL6 Lambda6 0 0.00
+VL6bar Lambda6bar 0 0.70
+VL7 Lambda7 0 0.00
+VL7bar Lambda7bar 0 0.70
+VL8 Lambda8 0 0.00
+VL8bar Lambda8bar 0 0.70
+VL9 Lambda9 0 0.00
+VL9bar Lambda9bar 0 0.70
+VL10 Lambda10 0 0.00
+VL10bar Lambda10bar 0 0.70
+VL11 Lambda11 0 0.00
+VL11bar Lambda11bar 0 0.70
+VL12 Lambda12 0 0.00
+VL12bar Lambda12bar 0 0.70
+VL13 Lambda13 0 0.00
+VL13bar Lambda13bar 0 0.70
+VL14 Lambda14 0 0.00
+VL14bar Lambda14bar 0 0.70
+VL15 Lambda15 0 0.00
+VL15bar Lambda15bar 0 0.70
+
+* Unselected island n8 discharged to LOW via per-bit pull-downs
+.IC V(n8)=0.0
+
+XSEG bus1 bus2_in bus2_out vdd vss CCSA_SEGMENT_K16
+
+.DC VDD 0.70 0.70 1
+.PRINT DC V(bus2_out) V(n8) I(VDD)
+.END
