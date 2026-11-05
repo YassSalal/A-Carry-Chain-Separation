@@ -1,0 +1,37 @@
+# Matched FPGA runs for Section 8.2.2 / Tables 16, 16b, 18a, 18b. Run from the repository root:
+#   vivado -mode batch -source run_matched.tcl -tclargs <design> <W> <dependent 0|1> [saif|-] [pipeline_depth for pipelined designs]
+# design: ccsa | manchester_ripple | manchester_static | carry_skip_8 | kogge_stone_comb |
+#         kogge_stone_pipelined | carry4_ripple | carry4_pipelined
+# Fixes relative to scripts/synth_impl.tcl in the repository: W is passed to synthesis
+# (-generic W=...), the top module exists (matched_wrapper), the CCSA RTL path is Supp.B/B_rtl,
+# the clock is swept instead of fixed at 1 ns, and the commit hash is recorded.
+lassign $argv design W dep saif depth
+if {$saif eq "-"} { set saif "" }
+set part xc7a100tcsg324-1
+set here [file dirname [file normalize [info script]]]
+if {$design eq "ccsa"} { set rtl [glob Supp.B/B_rtl/ccsa_adder.sv] } else { set rtl [glob baselines/$design/rtl/*.sv] }
+set out [file join results matched ${design}_W${W}_dep${dep}]; file mkdir $out
+set commit [exec git rev-parse HEAD]
+set best ""
+foreach T {0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.6 1.8 2.0 2.5 3.0 4.0 5.0 6.0 8.0 10.0 12.0 16.0 20.0 24.0 32.0} {
+  create_project -in_memory -part $part
+  read_verilog -sv [concat $rtl [file join $here adapter_${design}.sv] [file join $here matched_wrapper.sv]]
+  synth_design -top matched_wrapper -part $part -generic W=$W -generic DEPENDENT=$dep -retiming off
+  create_clock -name clk -period $T [get_ports clk]
+  set_input_delay  -clock clk [expr 0.3*$T] [get_ports {x_in[*] x_valid rst}]
+  set_output_delay -clock clk [expr 0.3*$T] [get_ports {s_out[*] s_valid op_count[*]}]
+  set_clock_uncertainty 0.050 [get_clocks clk]
+  opt_design; place_design; route_design
+  if {[get_property SLACK [get_timing_paths -max_paths 1 -setup]] >= 0} {
+    set best $T
+    report_timing_summary -file $out/timing_summary_routed.rpt
+    report_utilization    -file $out/utilization_placed.rpt
+    if {$saif ne ""} { read_saif $saif }
+    report_power          -file $out/power_routed.rpt
+    report_route_status   -file $out/route_status.rpt
+    set f [open $out/run_info.txt w]; puts $f "design=$design W=$W dependent=$dep period_ns=$T commit=$commit pipeline_depth=[expr {$depth eq "" ? 0 : $depth}] vivado=[version -short]"; close $f
+    close_project; break
+  }
+  close_project
+}
+puts "RESULT $design W=$W dependent=$dep fastest_period_ns=$best"
