@@ -1,8 +1,6 @@
 PY      := python3
 IVERILOG:= iverilog
 VVP     := vvp
-VIVADO  := vivado
-
 W       ?= 8
 N_RAND  ?= 20000
 
