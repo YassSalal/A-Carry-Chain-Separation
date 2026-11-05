@@ -17,5 +17,4 @@ python reference_model/ccsa_ref.py --exhaustive-8
 # RTL simulation
 vsim -c -do scripts/run_modelsim.do
 
-# FPGA PPA
-bash scripts/run_all_baselines.sh
+
