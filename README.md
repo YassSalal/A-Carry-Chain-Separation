@@ -11,9 +11,9 @@ Versioned supplementary material for the manuscript
 | Supp.B  | Supp.B/rtl/ccsa_adder.sv           | Sequential RTL (W+1-bit output)             |
 | Supp.B  | Supp.B/rtl/ccsa_adder_flat.sv      | Combinational RTL (single-cycle)            |
 | Supp.C  | Supp.C/testbench/tb_ccsa.sv        | Self-checking SystemVerilog testbench       |
-| Supp.D  | Supp.D/vivado_scripts/             | Vivado synthesis & sweep Tcl scripts        |
+| 
 | Supp.E  | Supp.E/electrical_report/          | Electrical model report + Python evaluation |
-| Supp.F  | Supp.F/fpga_reports/               | Collation script (Supp.F/fpga_reports/collate.py). The raw Vivado reports are not shipped; they are available from the authors on request.       |
+| 
 
 ## Reproduce
 
