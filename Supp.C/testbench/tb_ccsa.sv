@@ -11,7 +11,7 @@
 // Run with:
 //   iverilog -g2012 -o tb_ccsa.vvp tb_ccsa.sv ../B_rtl/ccsa_adder.sv
 //   vvp tb_ccsa.vvp
-// or with Vivado xsim:
+// or  with Verilator
 //   xvlog ../B_rtl/ccsa_adder.sv tb_ccsa.sv
 //   xelab -debug typical tb_ccsa -s tb_sim
 //   xsim tb_sim -runall
