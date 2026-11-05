@@ -15,15 +15,10 @@
 | Step 4 U4 | `ccs/rtl/ccsa_adder.sv` | 84–86 |
 
 ## How to reproduce
-
-1. Clone the repository at tag `v2.1.0-baselines`.
-2. Install Vivado 2023.2.
-3. Run `bash scripts/run_all_baselines.sh`.
-4. All logs are written to `logs/`.
+Make all (Python model plus Icarus Verilog simulation).
 
 ## Verification campaigns
 
 - Exhaustive 8-bit: `python reference_model/ccsa_ref.py --exhaustive-8`
 - Random wide: `python reference_model/ccsa_ref.py --random-widths 16,32,64,128,256 --seed 0xCC5A`
 - SVA: `vsim -c -do scripts/run_modelsim.do`
-- FPGA PPA: `vivado -mode batch -source scripts/synth_impl.tcl -tclargs <W> <design>`
