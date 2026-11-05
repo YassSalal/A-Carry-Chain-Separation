@@ -18,8 +18,6 @@ rtl:
 sim: rtl
 	$(VVP) build/tb_ccsa.vvp
 
-synth:
-	$(VIVADO) -mode batch -source Supp.D/vivado_scripts/sweep_widths.tcl
 
 clean:
 	rm -rf build/
