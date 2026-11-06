@@ -1,0 +1,12 @@
+exhaustive W=12 c_in=0: 16777216 vectors, 0 errors, 6 s
+exhaustive W=12 c_in=1: 16777216 vectors, 0 errors, 6 s
+exhaustive W=16 c_in=0: 4294967296 vectors, 0 errors, 1158 s
+exhaustive W=16 c_in=1: 4294967296 vectors, 0 errors, 1140 s
+directed W=12: 65 operand pairs x 2 carry-in values = 130 vectors, 0 errors
+directed W=16: 85 operand pairs x 2 carry-in values = 170 vectors, 0 errors
+directed W=32: 261 operand pairs x 2 carry-in values = 522 vectors, 0 errors
+directed W=64: 805 operand pairs x 2 carry-in values = 1610 vectors, 0 errors
+directed W=128: 1893 operand pairs x 2 carry-in values = 3786 vectors, 0 errors
+directed W=256: 4069 operand pairs x 2 carry-in values = 8138 vectors, 0 errors
+directed total 14356
+crosscheck with ccsa_ref.py: agree
