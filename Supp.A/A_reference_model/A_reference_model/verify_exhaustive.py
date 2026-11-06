@@ -1,123 +1,124 @@
-// =====================================================================
-// tb_ccsa_v2.sv  —  self-checking testbench for ccsa_adder.sv (Supp. B)
-//
-// Replaces Supp.C/testbench/tb_ccsa.sv, which (i) never drives `start`,
-// (ii) samples S after a fixed four cycles instead of waiting for `done`,
-// (iii) draws operands with $random (32 bits, sign-extended for W > 32,
-//      unseeded) and (iv) leaves the invariant checks commented out.
-//
-// This testbench:
-//   * drives the start/done handshake of the released controller and
-//     checks that `done` rises exactly six cycles after `start`
-//     (four datapath cycles + IDLE + DONE, Section 7.2);
-//   * draws every operand word independently and uniformly with
-//     $urandom from a fixed seed (SEED = 32'hCC5A), so all W bits are random;
-//   * runs directed corner cases (all-zero, all-one, alternating 0101/1010,
-//     isolated generates, carry chains and carry-free runs of length
-//     1, 2, 15, 16, 17, 31, 32, 33 and W-1 at every start position,
-//     i.e. including chains that begin, end or cross a k = 16 repeater
-//     boundary);
-//   * optionally runs an exhaustive campaign for W <= 12 (+define+EXHAUSTIVE);
-//   * checks after every addition, through hierarchical references,
-//       V1 = V2 = V3 = A + B,  U3 & L3 = 0,  S = A + B.
-//
-// The released RTL has no carry-in port (L1_prev[0] is tied to 0), so
-// carry-in is verified on the reference model only (verify_exhaustive.py).
-//
-// Run (examples):
-//   vsim  -c -GW=64  tb_ccsa_v2 -do "run -all"            (ModelSim/Questa)
-//   iverilog -g2012 -DW_PARAM=12 -DEXHAUSTIVE -o tb tb_ccsa_v2.sv ccsa_adder.sv && vvp tb
-// =====================================================================
-`timescale 1ns/1ps
-`ifndef W_PARAM
- `define W_PARAM 64
-`endif
-module tb_ccsa_v2;
-    parameter integer W        = `W_PARAM;
-    parameter integer N_RANDOM = 20000;
-    parameter [31:0]  SEED     = 32'hCC5A;
+"""Exhaustive and directed verification of the CCSA normative equations (Section 7.3.1)
+with carry-in injected as L1[-1] = c_in.
 
-    logic clk = 0, rst_n = 0, start = 0;
-    logic [W-1:0] A = '0, B = '0;
-    wire  [W:0]   S;
-    wire          done;
+Bit-parallel implementation: each operand pair is one machine word per state row, bit l of the
+word holding position l (0..W). For every vector it checks
+  V1 = V2 = V3 = A + B + c_in,  U3 & L3 = 0,  L4 = 0,  U4 = A + B + c_in.
+Usage:
+  python3 verify_exhaustive.py exhaustive W CIN      (W <= 16)
+  python3 verify_exhaustive.py directed             (W = 12, 16, 32, 64, 128, 256; python ints)
+  python3 verify_exhaustive.py crosscheck REF_DIR   (agreement with Supp.A ccsa_ref.py, c_in = 0)
+"""
+import sys, time
+import numpy as np
 
-    ccsa_adder #(.W(W)) dut (.clk(clk), .rst_n(rst_n), .start(start),
-                             .A(A), .B(B), .S(S), .done(done));
-    always #5 clk = ~clk;
+def step_all(A, B, cin, W, xp_int=False):
+    """Works on numpy uint64 arrays or on Python ints (xp_int=True)."""
+    MASK = (1 << (W + 1)) - 1
+    if xp_int:
+        mask = MASK; one = 1; zero = 0
+    else:
+        mask = np.uint64(MASK); one = np.uint64(1); zero = np.uint64(0)
+    c = (one if cin else zero)
+    # Step 1
+    U1 = (A ^ B) & mask
+    L1 = (A & B) & mask
+    U1p = (U1 << one) & mask            # U1[l-1], U1[-1] = 0
+    L1p = ((L1 << one) | c) & mask      # L1[l-1], L1[-1] = c_in
+    # Step 2
+    R = U1 & ~U1p & ~L1p & mask
+    Lam = ~U1 & U1p & mask
+    B2 = zero if xp_int else np.zeros_like(A)
+    prev = zero if xp_int else np.zeros_like(A)
+    for l in range(W + 1):
+        bit = (one << (l if xp_int else np.uint64(l)))
+        r = R & bit
+        lam = Lam & bit
+        p_shift = (prev << one) & bit             # B2[l-1] moved to position l
+        cur = r | (p_shift & ~lam & bit)
+        B2 = B2 | cur
+        prev = cur
+    E = B2 & U1
+    U2 = U1 & ~E & mask
+    L2 = (L1 | E) & mask
+    M = E
+    # Step 3 (shifted neighbours; L2[-1] = L1[-1] = c_in, U2[-1] = M[-1] = 0)
+    U2p = (U2 << one) & mask
+    L2p = ((L2 << one) | c) & mask
+    Mp = (M << one) & mask
+    U3 = ((~U2 & U2p) | (~Mp & L2p & ~U2p & ~U2)) & mask
+    L3 = L2 & M
+    # Step 4
+    U4 = U3 | L3
+    L4 = zero if xp_int else np.zeros_like(A)
+    # values
+    V1 = U1 + (L1 << one) + c
+    V2 = U2 + (L2 & M) + ((L2 & ~M & mask) << one) + c
+    V3 = U3 + L3
+    return V1, V2, V3, U3 & L3, L4, U4
 
-    integer n_checked = 0, n_errors = 0;
+def exhaustive(W, cin, chunk_bits=22):
+    assert W <= 16
+    N = 1 << (2 * W)
+    chunk = min(N, 1 << chunk_bits)
+    t = time.time(); done = 0
+    for start in range(0, N, chunk):
+        idx = np.arange(start, start + chunk, dtype=np.uint64)
+        A = idx >> np.uint64(W)
+        B = idx & np.uint64((1 << W) - 1)
+        V1, V2, V3, col, L4, U4 = step_all(A, B, cin, W)
+        ref = A + B + np.uint64(cin)
+        ok = (V1 == ref) & (V2 == ref) & (V3 == ref) & (col == 0) & (L4 == 0) & (U4 == ref)
+        if not ok.all():
+            k = int(np.argmin(ok)); print('FAIL', W, cin, int(A[k]), int(B[k])); sys.exit(1)
+        done += chunk
+    print(f'exhaustive W={W} c_in={cin}: {done} vectors, 0 errors, {time.time()-t:.0f} s', flush=True)
 
-    // --- value functions of Section 6.1 on the DUT's registered state ---
-    function automatic [W+1:0] v1(input [W:0] U, input [W:0] L);
-        v1 = {1'b0, U} + ({1'b0, L} << 1);
-    endfunction
-    function automatic [W+1:0] v2(input [W:0] U, input [W:0] L, input [W:0] M);
-        v2 = {1'b0, U} + {1'b0, (L & M)} + ({1'b0, (L & ~M)} << 1);
-    endfunction
+def directed_cases(W):
+    ALL = (1 << W) - 1
+    alt5 = int('01' * W, 2) & ALL      # ...0101
+    altA = ALL ^ alt5                  # ...1010
+    cases = {('all-zero', 0, 0), ('all-one', ALL, ALL), ('all-one + 0', ALL, 0), ('all-one + 1 (chain of length W)', ALL, 1),
+             ('0101 + 1010', alt5, altA), ('0101 + 0101', alt5, alt5), ('1010 + 1010', altA, altA), ('0101 + 0', alt5, 0), ('1010 + 1', altA, 1)}
+    lens = sorted({1, 2, 15, 16, 17, 31, 32, 33, W - 1})
+    for k in range(W):
+        # isolated generate (carry chain of length 1 into position k+1)
+        cases.add(('isolated generate', 1 << k, 1 << k))
+        for n in lens:
+            if k + 1 + n > W: continue
+            prop = ((1 << n) - 1) << (k + 1)
+            cases.add((f'carry chain length {n}', (1 << k) | prop, 1 << k))       # generate at k, n propagates
+            cases.add((f'carry-free run length {n}', prop, 0))                   # propagate run with no generate
+    return sorted(cases)
 
-    // --- one addition through the handshake, with all checks ---
-    task automatic add_check(input [W-1:0] a, input [W-1:0] b);
-        logic [W+1:0] ref_sum;
-        integer cyc;
-        ref_sum = a + b;
-        @(negedge clk); A = a; B = b; start = 1;
-        @(negedge clk); start = 0;
-        cyc = 1;
-        while (!done) begin
-            @(negedge clk); cyc++;
-            if (cyc > 10) begin $error("done never rose"); $fatal; end
-        end
-        // registered state of the finished addition
-        if (v1(dut.U1, dut.L1)            !== ref_sum) begin n_errors++; $error("V1 A=%h B=%h", a, b); end
-        if (v2(dut.U2, dut.L2, dut.M2)    !== ref_sum) begin n_errors++; $error("V2 A=%h B=%h", a, b); end
-        if ({1'b0, dut.U3} + {1'b0, dut.L3} !== ref_sum) begin n_errors++; $error("V3 A=%h B=%h", a, b); end
-        if ((dut.U3 & dut.L3) !== '0)                begin n_errors++; $error("collision A=%h B=%h", a, b); end
-        if ({1'b0, S} !== ref_sum)                   begin n_errors++; $error("S A=%h B=%h got=%h", a, b, S); end
-        if (cyc != 6)                                begin n_errors++; $error("done after %0d cycles, expected 6", cyc); end
-        n_checked++;
-    endtask
+def directed():
+    total = 0
+    for W in (12, 16, 32, 64, 128, 256):
+        cs = directed_cases(W); n = 0
+        for name, A, B in cs:
+            for cin in (0, 1):
+                V1, V2, V3, col, L4, U4 = step_all(A, B, cin, W, xp_int=True)
+                ref = A + B + cin
+                assert V1 == ref and V2 == ref and V3 == ref and col == 0 and L4 == 0 and U4 == ref, (W, name, A, B, cin)
+                n += 1
+        print(f'directed W={W}: {len(cs)} operand pairs x 2 carry-in values = {n} vectors, 0 errors')
+        total += n
+    print('directed total', total)
 
-    function automatic [W-1:0] urand_w();
-        logic [W-1:0] r;
-        for (int i = 0; i < W; i += 32) r[i +: 32] = $urandom;   // independent 32-bit words
-        return r;
-    endfunction
+def crosscheck(ref_dir, n=20000, seed=0xCC5A):
+    sys.path.insert(0, ref_dir)
+    import random, ccsa_ref
+    rng = random.Random(seed)
+    for W in (8, 12, 16, 32, 64, 128, 256):
+        for _ in range(n // 10 if W > 64 else n):
+            A = rng.randrange(1 << W); B = rng.randrange(1 << W)
+            S = ccsa_ref.ccsa(A, B, W)[0]
+            U4 = step_all(A, B, 0, W, xp_int=True)[5]
+            assert S == U4 == A + B
+    print('crosscheck with ccsa_ref.py: agree')
 
-    task automatic directed();
-        logic [W-1:0] ALL, alt5, altA, prop;
-        int lens[9] = '{1, 2, 15, 16, 17, 31, 32, 33, W-1};
-        ALL = '1;
-        for (int i = 0; i < W; i++) alt5[i] = ~i[0];
-        altA = ~alt5;
-        add_check('0, '0);       add_check(ALL, ALL);   add_check(ALL, '0);   add_check(ALL, 1);
-        add_check(alt5, altA);   add_check(alt5, alt5); add_check(altA, altA);
-        add_check(alt5, '0);     add_check(altA, 1);
-        for (int k = 0; k < W; k++) begin
-            add_check(W'(1) << k, W'(1) << k);                          // isolated generate
-            foreach (lens[j]) if (lens[j] > 0 && k + 1 + lens[j] <= W) begin
-                prop = ((W'(1) << lens[j]) - 1) << (k + 1);
-                add_check((W'(1) << k) | prop, W'(1) << k);             // carry chain of length lens[j]
-                add_check(prop, '0);                                    // carry-free run of length lens[j]
-            end
-        end
-    endtask
-
-    initial begin
-        void'($urandom(SEED));
-        repeat (3) @(negedge clk); rst_n = 1;
-        directed();
-        $display("directed: %0d additions", n_checked);
-`ifdef EXHAUSTIVE
-        if (W <= 12) begin
-            for (longint a = 0; a < (1 << W); a++)
-                for (longint b = 0; b < (1 << W); b++) add_check(W'(a), W'(b));
-            $display("exhaustive W=%0d done", W);
-        end
-`endif
-        for (int i = 0; i < N_RANDOM; i++) add_check(urand_w(), urand_w());
-        $display("tb_ccsa_v2: W=%0d checked=%0d errors=%0d seed=%h  %s",
-                 W, n_checked, n_errors, SEED, (n_errors == 0) ? "PASS" : "FAIL");
-        $finish;
-    end
-endmodule
+if __name__ == '__main__':
+    m = sys.argv[1]
+    if m == 'exhaustive': exhaustive(int(sys.argv[2]), int(sys.argv[3]))
+    elif m == 'directed': directed()
+    elif m == 'crosscheck': crosscheck(sys.argv[2])
