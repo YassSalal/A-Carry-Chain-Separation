@@ -1,101 +1,123 @@
-`timescale 1ns / 1ps
-// tb_ccsa.sv
-// Self-checking testbench for the CCSA RTL (Supp.B/B_rtl/ccsa_adder.sv).
-// Reproduces the verification claims of Section 6.7:
-//   - exhaustive 8-bit campaign (65,536 operand pairs)
-//   - random vectors up to 256 bits
-//   - regression vectors A=1,B=255,W=8; A=255,B=255,W=8; A=15,B=1,W=4
-//   - SVA checkers: a_step_value_preserve, a_boundary_exclusive,
-//                   a_chain_separation, a_collision_free, a_final_canonical
+// =====================================================================
+// tb_ccsa_v2.sv  —  self-checking testbench for ccsa_adder.sv (Supp. B)
 //
-// Run with:
-//   iverilog -g2012 -o tb_ccsa.vvp tb_ccsa.sv ../B_rtl/ccsa_adder.sv
-//   vvp tb_ccsa.vvp
-// or  with Verilator
-//   xvlog ../B_rtl/ccsa_adder.sv tb_ccsa.sv
-//   xelab -debug typical tb_ccsa -s tb_sim
-//   xsim tb_sim -runall
-
-module tb_ccsa;
-
-    parameter integer W = 8;          // override with +define+W=256
+// Replaces Supp.C/testbench/tb_ccsa.sv, which (i) never drives `start`,
+// (ii) samples S after a fixed four cycles instead of waiting for `done`,
+// (iii) draws operands with $random (32 bits, sign-extended for W > 32,
+//      unseeded) and (iv) leaves the invariant checks commented out.
+//
+// This testbench:
+//   * drives the start/done handshake of the released controller and
+//     checks that `done` rises exactly six cycles after `start`
+//     (four datapath cycles + IDLE + DONE, Section 7.2);
+//   * draws every operand word independently and uniformly with
+//     $urandom from a fixed seed (SEED = 32'hCC5A), so all W bits are random;
+//   * runs directed corner cases (all-zero, all-one, alternating 0101/1010,
+//     isolated generates, carry chains and carry-free runs of length
+//     1, 2, 15, 16, 17, 31, 32, 33 and W-1 at every start position,
+//     i.e. including chains that begin, end or cross a k = 16 repeater
+//     boundary);
+//   * optionally runs an exhaustive campaign for W <= 12 (+define+EXHAUSTIVE);
+//   * checks after every addition, through hierarchical references,
+//       V1 = V2 = V3 = A + B,  U3 & L3 = 0,  S = A + B.
+//
+// The released RTL has no carry-in port (L1_prev[0] is tied to 0), so
+// carry-in is verified on the reference model only (verify_exhaustive.py).
+//
+// Run (examples):
+//   vsim  -c -GW=64  tb_ccsa_v2 -do "run -all"            (ModelSim/Questa)
+//   iverilog -g2012 -DW_PARAM=12 -DEXHAUSTIVE -o tb tb_ccsa_v2.sv ccsa_adder.sv && vvp tb
+// =====================================================================
+`timescale 1ns/1ps
+`ifndef W_PARAM
+ `define W_PARAM 64
+`endif
+module tb_ccsa_v2;
+    parameter integer W        = `W_PARAM;
     parameter integer N_RANDOM = 20000;
+    parameter [31:0]  SEED     = 32'hCC5A;
 
-    logic         clk = 0;
-    logic         rst_n;
-    logic [W-1:0] A, B;
-    logic [W:0]   S;
+    logic clk = 0, rst_n = 0, start = 0;
+    logic [W-1:0] A = '0, B = '0;
+    wire  [W:0]   S;
+    wire          done;
 
-    // Device under test
-    ccsa_adder #(.W(W)) dut (
-        .clk(clk), .rst_n(rst_n), .A(A), .B(B), .S(S)
-    );
-
-    // Clock
+    ccsa_adder #(.W(W)) dut (.clk(clk), .rst_n(rst_n), .start(start),
+                             .A(A), .B(B), .S(S), .done(done));
     always #5 clk = ~clk;
 
-    // Reference sum
-    logic [W:0] expected;
-    assign expected = {1'b0, A} + {1'b0, B};
+    integer n_checked = 0, n_errors = 0;
 
-    // Cycle the 4-step pipeline: apply inputs, wait 4 cycles, sample S.
-    task automatic check_one(input [W-1:0] a, input [W-1:0] b);
-        A = a; B = b;
-        @(posedge clk); @(posedge clk); @(posedge clk); @(posedge clk);
-        @(negedge clk);
-        if (S !== expected) begin
-            $error("MISMATCH A=%0d B=%0d got=%0d exp=%0d", a, b, S, expected);
-            $fatal;
+    // --- value functions of Section 6.1 on the DUT's registered state ---
+    function automatic [W+1:0] v1(input [W:0] U, input [W:0] L);
+        v1 = {1'b0, U} + ({1'b0, L} << 1);
+    endfunction
+    function automatic [W+1:0] v2(input [W:0] U, input [W:0] L, input [W:0] M);
+        v2 = {1'b0, U} + {1'b0, (L & M)} + ({1'b0, (L & ~M)} << 1);
+    endfunction
+
+    // --- one addition through the handshake, with all checks ---
+    task automatic add_check(input [W-1:0] a, input [W-1:0] b);
+        logic [W+1:0] ref_sum;
+        integer cyc;
+        ref_sum = a + b;
+        @(negedge clk); A = a; B = b; start = 1;
+        @(negedge clk); start = 0;
+        cyc = 1;
+        while (!done) begin
+            @(negedge clk); cyc++;
+            if (cyc > 10) begin $error("done never rose"); $fatal; end
+        end
+        // registered state of the finished addition
+        if (v1(dut.U1, dut.L1)            !== ref_sum) begin n_errors++; $error("V1 A=%h B=%h", a, b); end
+        if (v2(dut.U2, dut.L2, dut.M2)    !== ref_sum) begin n_errors++; $error("V2 A=%h B=%h", a, b); end
+        if ({1'b0, dut.U3} + {1'b0, dut.L3} !== ref_sum) begin n_errors++; $error("V3 A=%h B=%h", a, b); end
+        if ((dut.U3 & dut.L3) !== '0)                begin n_errors++; $error("collision A=%h B=%h", a, b); end
+        if ({1'b0, S} !== ref_sum)                   begin n_errors++; $error("S A=%h B=%h got=%h", a, b, S); end
+        if (cyc != 6)                                begin n_errors++; $error("done after %0d cycles, expected 6", cyc); end
+        n_checked++;
+    endtask
+
+    function automatic [W-1:0] urand_w();
+        logic [W-1:0] r;
+        for (int i = 0; i < W; i += 32) r[i +: 32] = $urandom;   // independent 32-bit words
+        return r;
+    endfunction
+
+    task automatic directed();
+        logic [W-1:0] ALL, alt5, altA, prop;
+        int lens[9] = '{1, 2, 15, 16, 17, 31, 32, 33, W-1};
+        ALL = '1;
+        for (int i = 0; i < W; i++) alt5[i] = ~i[0];
+        altA = ~alt5;
+        add_check('0, '0);       add_check(ALL, ALL);   add_check(ALL, '0);   add_check(ALL, 1);
+        add_check(alt5, altA);   add_check(alt5, alt5); add_check(altA, altA);
+        add_check(alt5, '0);     add_check(altA, 1);
+        for (int k = 0; k < W; k++) begin
+            add_check(W'(1) << k, W'(1) << k);                          // isolated generate
+            foreach (lens[j]) if (lens[j] > 0 && k + 1 + lens[j] <= W) begin
+                prop = ((W'(1) << lens[j]) - 1) << (k + 1);
+                add_check((W'(1) << k) | prop, W'(1) << k);             // carry chain of length lens[j]
+                add_check(prop, '0);                                    // carry-free run of length lens[j]
+            end
         end
     endtask
 
-    integer i;
-    integer errors;
-
     initial begin
-        errors = 0;
-        rst_n  = 0;
-        A = '0; B = '0;
-        repeat (4) @(posedge clk);
-        rst_n = 1;
-        @(posedge clk);
-
-        // --- Regression vectors from Section 6.7 ---
-        if (W >= 8) begin
-            check_one(8'd1,   8'd255);
-            check_one(8'd255, 8'd255);
+        void'($urandom(SEED));
+        repeat (3) @(negedge clk); rst_n = 1;
+        directed();
+        $display("directed: %0d additions", n_checked);
+`ifdef EXHAUSTIVE
+        if (W <= 12) begin
+            for (longint a = 0; a < (1 << W); a++)
+                for (longint b = 0; b < (1 << W); b++) add_check(W'(a), W'(b));
+            $display("exhaustive W=%0d done", W);
         end
-        if (W == 4) begin
-            check_one(4'd15, 4'd1);
-        end
-        // --- Maximal carry vector ---
-        check_one({W{1'b1}}, {W{1'b1}});
-
-        // --- Exhaustive 8-bit campaign ---
-        if (W == 8) begin
-            for (i = 0; i < 65536; i = i + 1)
-                check_one(i[7:0], (i >> 8) & 8'hFF);
-        end
-
-        // --- Random campaign ---
-        for (i = 0; i < N_RANDOM; i = i + 1)
-            check_one($random, $random);
-
-        $display("tb_ccsa: PASS  (W=%0d, random=%0d)", W, N_RANDOM);
+`endif
+        for (int i = 0; i < N_RANDOM; i++) add_check(urand_w(), urand_w());
+        $display("tb_ccsa_v2: W=%0d checked=%0d errors=%0d seed=%h  %s",
+                 W, n_checked, n_errors, SEED, (n_errors == 0) ? "PASS" : "FAIL");
         $finish;
     end
-
-    // ---------- SVA checkers (Section 6.7) ----------
-    // a_final_canonical: after Step 4, L4 == 0 and S == A+B.
-    // (Requires exposing U3/L3/L4 from the DUT; if not exposed,
-    //  keep the equivalent check inside the RTL module or use
-    //  hierarchical references, e.g. dut.L4.)
-    //
-    // a_boundary_exclusive: at end of Step 2, R[l] & Lambda[l] == 0.
-    // a_chain_separation:   if E[l]==1 then L2[l]==0.
-    // a_collision_free:     at end of Step 3, U3[l] & L3[l] == 0.
-    //
-    // To enable these, add `output wire [W:0] U3, L3, L4, E2;` to
-    // ccsa_adder.sv and connect the internal signals.
-
 endmodule
